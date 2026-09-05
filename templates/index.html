@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Absensi</title>
+    <!-- Google Fonts & Library -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- Library Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR NAVIGASI & PENGATURAN -->
+    <div class="sidebar" id="sidebar">
+        <h3>Navigasi Utama</h3>
+        <ul class="nav-list">
+            <li class="nav-item active" onclick="switchPage('page-scanner', this)">📱 Scanner Utama</li>
+            <li class="nav-item" onclick="switchPage('page-siswa', this)">📊 Halaman Rekap Siswa</li>
+            <li class="nav-item" onclick="switchPage('page-guru', this)">👨‍🏫 Halaman Guru</li>
+        </ul>
+
+        <h3>Pengaturan Tampilan</h3>
+        <div class="theme-switch-wrapper">
+            <span>Mode Terang</span>
+            <label class="switch">
+                <input type="checkbox" id="themeToggle" onchange="switchTheme(this)">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="theme-switch-wrapper">
+            <span>Gunakan Suara (TTS)</span>
+            <label class="switch">
+                <input type="checkbox" id="voiceToggle" onchange="switchVoice(this)">
+                <span class="slider"></span>
+            </label>
+        </div>
+        
+        <div class="volume-control-wrapper">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Volume Suara</span>
+                <span id="volumeLabel" style="font-size: 0.85rem; color: var(--text-title); font-weight: 700;">100%</span>
+            </div>
+            <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="1" oninput="switchVolume(this.value)">
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <div class="header">
+        <button class="menu-btn" onclick="toggleSidebar()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="header-title">
+            <h2>Absensi</h2>
+            <h1>Demo</h1>
+        </div>
+    </div>
+
+    <!-- HALAMAN SCANNER -->
+    <div id="page-scanner" class="page-view active">
+        <div class="container">
+            <div class="panel-scanner">
+                <h3>Scanner QR CODE</h3>
+                <div id="reader"></div>
+                <div id="pesan_hasil">Menunggu scan...</div>
+            </div>
+
+            <div class="panel-daftar">
+                <div class="daftar-header-box">
+                    <h3>Daftar Hadir Hari Ini</h3>
+                </div>
+                <ul id="daftar_absen"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN REKAP SISWA -->
+    <div id="page-siswa" class="page-view">
+        <div class="rekap-container">
+            <h3 class="section-title">Halaman Rekap Siswa</h3>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-title">Total Siswa</span>
+                    <span class="stat-value" id="stat-total-siswa">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-title">Tab Aktif</span>
+                    <span class="stat-value" id="stat-tab-aktif" style="color: #a78bfa;">-</span>
+                </div>
+            </div>
+
+            <!-- TAB MENU BAR DARI SUPABASE -->
+            <div class="sub-menu-bar" id="kelasMenuBar"></div>
+
+            <div class="action-filter-bar">
+                <div class="search-box">
+                    <input type="text" id="searchSiswa" placeholder="🔍 Cari Nama Siswa..." onkeyup="filterTabelSiswa()">
+                </div>
+                
+                <!-- FILTER BULAN & TAHUN -->
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <select id="filterBulanSiswa" onchange="muatRekapTab(tabAktifSekarang)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-title);">
+                        <option value="1">Januari</option>
+                        <option value="2">Februari</option>
+                        <option value="3">Maret</option>
+                        <option value="4">April</option>
+                        <option value="5">Mei</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">Agustus</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                    <select id="filterTahunSiswa" onchange="muatRekapTab(tabAktifSekarang)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-title);"></select>
+                </div>
+
+                <button class="btn-export" onclick="exportKeCSV('tabel_siswa_full', 'Rekap_Absensi_Siswa')">📥 Ekspor CSV</button>
+                <button class="btn-print" onclick="window.print()">🖨️ Cetak</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="custom-table" id="tabel_siswa_full">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">No</th>
+                            <th rowspan="2">Nama Siswa</th>
+                            <th rowspan="2">JK</th>
+                            <th colspan="31" style="text-align: center;">Tanggal (1 - 31)</th>
+                            <th rowspan="2">Tepat</th>
+                            <th rowspan="2">Telat</th>
+                            <th rowspan="2">Total Hadir</th>
+                        </tr>
+                        <tr>
+                            <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th>
+                            <th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th>
+                            <th>21</th><th>22</th><th>23</th><th>24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th>30</th><th>31</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel_rekap_siswa"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN GURU -->
+    <div id="page-guru" class="page-view">
+        <div class="rekap-container">
+            <h3 class="section-title">Halaman Rekap Kehadiran Guru</h3>
+
+            <div class="action-filter-bar">
+                <div class="search-box">
+                    <input type="text" id="searchGuru" placeholder="🔍 Cari Nama Guru..." onkeyup="filterTabelGuru()">
+                </div>
+
+                <!-- FILTER BULAN & TAHUN GURU -->
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <select id="filterBulanGuru" onchange="muatRekapTab(tabAktifSekarang)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-title);">
+                        <option value="1">Januari</option>
+                        <option value="2">Februari</option>
+                        <option value="3">Maret</option>
+                        <option value="4">April</option>
+                        <option value="5">Mei</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">Agustus</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                    <select id="filterTahunGuru" onchange="muatRekapTab(tabAktifSekarang)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-title);"></select>
+                </div>
+
+                <button class="btn-export" onclick="exportKeCSV('tabel_guru_full', 'Rekap_Absensi_Guru')">📥 Ekspor CSV</button>
+                <button class="btn-print" onclick="window.print()">🖨️ Cetak</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="custom-table" id="tabel_guru_full">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">No</th>
+                            <th rowspan="2">Nama Guru</th>
+                            <th rowspan="2">JK</th>
+                            <th colspan="31" style="text-align: center;">Tanggal (1 - 31)</th>
+                            <th rowspan="2">Tepat</th>
+                            <th rowspan="2">Telat</th>
+                            <th rowspan="2">Total Hadir</th>
+                        </tr>
+                        <tr>
+                            <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th>
+                            <th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th>
+                            <th>21</th><th>22</th><th>23</th><th>24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th>30</th><th>31</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel_rekap_guru"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH KELAS / TAB -->
+    <div class="modal" id="modalTambahKelas">
+        <div class="modal-content">
+            <h4>Tambah Kelas Baru</h4>
+            <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 1rem;">
+                Masukkan nama kelas baru (misal: 10-A, 11-IPA, Guru).
+            </p>
+
+            <input type="text" id="namaKelasBaru" placeholder="Masukkan nama kelas">
+
+            <div class="modal-actions">
+                <button class="tab-btn" onclick="tutupModalTambahKelas()">Batal</button>
+                <button class="tab-btn btn-add-tab" onclick="prosesTambahKelas()">Simpan Kelas</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
