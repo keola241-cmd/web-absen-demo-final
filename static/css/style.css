@@ -467,7 +467,7 @@ select {
     align-items: center;
 }
 
-/* Style Tombol Tab & Aksi */
+/* Style Tombol Tab & Silang Hapus */
 .tab-btn {
     padding: 0.6rem 1rem;
     background: var(--btn-bg);
@@ -507,30 +507,11 @@ select {
     color: #ef4444;
 }
 
-.tab-action-group {
-    display: flex;
-    gap: 0.6rem;
-    margin-left: auto;
-}
-
-.btn-delete-active-tab {
-    background: #ef4444 !important;
-    color: #ffffff !important;
-    border: none;
-}
-
-.btn-delete-active-tab:hover {
-    background: #dc2626 !important;
-}
-
 .btn-add-tab {
     background: #10b981 !important;
     color: #ffffff !important;
     border: none;
-}
-
-.btn-add-tab:hover {
-    background: #059669 !important;
+    margin-left: auto;
 }
 
 .table-wrapper {
@@ -709,14 +690,9 @@ select {
         font-size: 1.2rem;
     }
 
-    .tab-action-group {
+    .btn-add-tab {
         margin-left: 0;
         width: 100%;
-    }
-
-    .btn-add-tab, .btn-delete-active-tab {
-        flex: 1;
-        justify-content: center;
     }
 
     .action-filter-bar {
