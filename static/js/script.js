@@ -16,8 +16,9 @@ function switchPage(pageId, element) {
     document.querySelectorAll('.page-view').forEach(page => page.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 
-    document.getElementById(pageId).classList.add('active');
-    element.classList.add('active');
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) targetPage.classList.add('active');
+    if (element) element.classList.add('active');
 
     if (pageId === 'page-siswa' || pageId === 'page-guru') {
         muatDaftarTab();
@@ -36,6 +37,8 @@ async function muatDaftarTab() {
         if (error) throw error;
 
         const containerMenu = document.getElementById('kelasMenuBar');
+        if (!containerMenu) return; // Guard clause jika elemen tidak ada
+        
         containerMenu.innerHTML = '';
 
         if (tabs && tabs.length > 0) {
@@ -92,16 +95,25 @@ function pilihKelas(namaKelas, element) {
 // === MEMUAT DATA REKAP MATRIKS TANGGAL 1 - 31 ===
 async function muatRekapTab(namaTab) {
     if (!namaTab) return;
-    document.getElementById('stat-tab-aktif').innerText = namaTab;
+    
+    const elemTabAktif = document.getElementById('stat-tab-aktif');
+    if (elemTabAktif) elemTabAktif.innerText = namaTab;
+
     const tbodySiswa = document.getElementById('tabel_rekap_siswa');
     const tbodyGuru = document.getElementById('tabel_rekap_guru');
     
     if (tbodySiswa) tbodySiswa.innerHTML = '<tr><td colspan="37" style="text-align:center;">Memuat data...</td></tr>';
     if (tbodyGuru) tbodyGuru.innerHTML = '<tr><td colspan="37" style="text-align:center;">Memuat data...</td></tr>';
 
-    const isGuruPage = String(namaTab).toLowerCase().includes('guru');
-    const bulanSel = parseInt(document.getElementById(isGuruPage ? 'filterBulanGuru' : 'filterBulanSiswa').value, 10);
-    const tahunSel = parseInt(document.getElementById(isGuruPage ? 'filterTahunGuru' : 'filterTahunSiswa').value, 10);
+    // Perbaikan deteksi Halaman Guru
+    const isGuruPage = String(namaTab).toLowerCase().includes('guru') || 
+                      (document.getElementById('page-guru') && document.getElementById('page-guru').classList.contains('active'));
+    
+    const filterBulanElem = document.getElementById(isGuruPage ? 'filterBulanGuru' : 'filterBulanSiswa');
+    const filterTahunElem = document.getElementById(isGuruPage ? 'filterTahunGuru' : 'filterTahunSiswa');
+
+    const bulanSel = filterBulanElem ? parseInt(filterBulanElem.value, 10) : (new Date().getMonth() + 1);
+    const tahunSel = filterTahunElem ? parseInt(filterTahunElem.value, 10) : new Date().getFullYear();
 
     try {
         const { data, error } = await _supabase
@@ -118,11 +130,12 @@ async function muatRekapTab(namaTab) {
             const pesanKosong = '<tr><td colspan="37" style="text-align:center;">Belum ada data di kelas ini.</td></tr>';
             if (tbodySiswa) tbodySiswa.innerHTML = pesanKosong;
             if (tbodyGuru) tbodyGuru.innerHTML = pesanKosong;
-            document.getElementById('stat-total-siswa').innerText = 0;
+            const elemTotal = document.getElementById('stat-total-siswa');
+            if (elemTotal) elemTotal.innerText = 0;
             return;
         }
 
-        // Agregasi Data & Filter Sesuai Bulan/Tahun yang dipilih
+        // Agregasi Data & Filter Sesuai Bulan/Tahun
         const rekapMap = {};
         data.forEach(row => {
             if (!rekapMap[row.nama]) {
@@ -154,7 +167,8 @@ async function muatRekapTab(namaTab) {
         });
 
         const rekapArray = Object.values(rekapMap);
-        document.getElementById('stat-total-siswa').innerText = rekapArray.length;
+        const elemTotal = document.getElementById('stat-total-siswa');
+        if (elemTotal) elemTotal.innerText = rekapArray.length;
 
         rekapArray.forEach((item, index) => {
             const tr = document.createElement('tr');
@@ -172,11 +186,12 @@ async function muatRekapTab(namaTab) {
                 }
             }
 
-            // LINK DETAIL SISWA DENGAN PARAMETER LENGKAP (TEPAT & TELAT)
+            const urlDetail = isGuruPage ? '/detail_guru' : '/detail_siswa';
+
             tr.innerHTML = `
                 <td>${index + 1}</td>
                 <td>
-                    <a href="/detail_siswa?nama=${encodeURIComponent(item.nama)}&kelas=${encodeURIComponent(namaTab)}&jk=${encodeURIComponent(item.gender)}&tepat=${item.tepat}&telat=${item.telat}" 
+                    <a href="${urlDetail}?nama=${encodeURIComponent(item.nama)}&kelas=${encodeURIComponent(namaTab)}&jk=${encodeURIComponent(item.gender)}&tepat=${item.tepat}&telat=${item.telat}" 
                        style="color: var(--text-title); text-decoration: underline; font-weight: 600;">
                         ${item.nama}
                     </a>
@@ -361,6 +376,7 @@ function filterTabelGuru() {
     });
 }
 
+// [PERBAIKAN] Export CSV menggunakan Blob & UTF-8 BOM
 function exportKeCSV(tableId, filename) {
     const table = document.getElementById(tableId);
     if (!table) return;
@@ -372,8 +388,14 @@ function exportKeCSV(tableId, filename) {
         });
         csv.push(rowData.join(','));
     });
+    
+    // Tambahkan \uFEFF (BOM) agar Excel mengenali encode UTF-8 dengan benar
+    const csvContent = "\uFEFF" + csv.join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
     const link = document.createElement("a");
-    link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + csv.join("\n")));
+    link.setAttribute("href", url);
     link.setAttribute("download", `${filename}_${tabAktifSekarang}.csv`);
     document.body.appendChild(link);
     link.click();
@@ -432,11 +454,24 @@ function bicara(text) {
 // === INISIALISASI TERMASUK OPTION TAHUN DAN BULAN SAAT INI ===
 let scanner = null;
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Restore Tema
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     if (document.getElementById('themeToggle')) document.getElementById('themeToggle').checked = (savedTheme === 'light');
 
-    // Inisialisasi Option Tahun & Bulan Sekarang
+    // 2. Restore Suara & Volume [PERBAIKAN]
+    const savedVoice = localStorage.getItem('useVoice');
+    if (savedVoice !== null && document.getElementById('voiceToggle')) {
+        document.getElementById('voiceToggle').checked = (savedVoice === 'true');
+    }
+
+    const savedVolume = localStorage.getItem('appVolume') ?? '1.0';
+    if (document.getElementById('volumeRange')) {
+        document.getElementById('volumeRange').value = savedVolume;
+        switchVolume(savedVolume);
+    }
+
+    // 3. Inisialisasi Option Tahun & Bulan Sekarang
     const dSekarang = new Date();
     const thnSekarang = dSekarang.getFullYear();
     const blnSekarang = dSekarang.getMonth() + 1;
