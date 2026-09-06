@@ -467,19 +467,44 @@ select {
     align-items: center;
 }
 
+/* Style Tombol Tab & Silang Hapus */
 .tab-btn {
-    padding: 0.6rem 1.2rem;
+    padding: 0.6rem 1rem;
     background: var(--btn-bg);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     color: var(--text-heading);
     font-weight: 600;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    user-select: none;
 }
 
 .tab-btn.active {
     background: var(--btn-primary);
     color: #ffffff;
+}
+
+.tab-label {
+    cursor: pointer;
+}
+
+.btn-delete-tab {
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--text-sub);
+    opacity: 0.5;
+    padding: 0 2px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-delete-tab:hover {
+    opacity: 1;
+    color: #ef4444;
 }
 
 .btn-add-tab {
