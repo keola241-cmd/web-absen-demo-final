@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Demo Absensi</title>
-    <!-- Google Fonts & Library -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- Library Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -97,7 +94,6 @@
                 </div>
             </div>
 
-            <!-- TAB MENU BAR DARI SUPABASE -->
             <div class="sub-menu-bar" id="kelasMenuBar"></div>
 
             <div class="action-filter-bar">
@@ -105,7 +101,6 @@
                     <input type="text" id="searchSiswa" placeholder="🔍 Cari Nama Siswa..." onkeyup="filterTabelSiswa()">
                 </div>
                 
-                <!-- FILTER BULAN & TAHUN (Fixed var(--card-bg)) -->
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <select id="filterBulanSiswa" onchange="muatRekapTab(tabAktifSekarang)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-heading);">
                         <option value="1">Januari</option>
@@ -162,7 +157,6 @@
                     <input type="text" id="searchGuru" placeholder="🔍 Cari Nama Guru..." onkeyup="filterTabelGuru()">
                 </div>
 
-                <!-- FILTER BULAN & TAHUN GURU (Fixed var(--card-bg)) -->
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <select id="filterBulanGuru" onchange="muatRekapTab(tabAktifSekarang)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-heading);">
                         <option value="1">Januari</option>
@@ -209,7 +203,7 @@
         </div>
     </div>
 
-    <!-- MODAL TAMBAH KELAS / TAB -->
+    <!-- MODAL TAMBAH KELAS -->
     <div class="modal" id="modalTambahKelas">
         <div class="modal-content">
             <h4>Tambah Kelas Baru</h4>
@@ -226,7 +220,6 @@
         </div>
     </div>
 
-    <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

@@ -34,7 +34,6 @@ def home():
 def detail_siswa():
     return render_template('detail_siswa.html')
 
-# [PERBAIKAN] Tambahkan route detail_guru agar tidak 404
 @app.route('/detail_guru')
 def detail_guru():
     return render_template('detail_guru.html')

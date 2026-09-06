@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Ambil data dari Parameter URL yang dikirim dari tabel rekap
     const urlParams = new URLSearchParams(window.location.search);
     const nama = urlParams.get('nama') || 'Siswa Tanpa Nama';
     const kelas = urlParams.get('kelas') || '-';
@@ -8,18 +7,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const telat = parseInt(urlParams.get('telat')) || 0;
     const izin = parseInt(urlParams.get('izin')) || 0;
 
-    // 2. Tampilkan Nama, Kelas & Jenis Kelamin
     if (document.getElementById('detailNamaSiswa')) document.getElementById('detailNamaSiswa').innerText = nama;
     if (document.getElementById('detailKelasSiswa')) document.getElementById('detailKelasSiswa').innerText = `Kelas ${kelas}`;
     if (document.getElementById('detailGenderSiswa')) document.getElementById('detailGenderSiswa').innerText = `👤 Jenis Kelamin: ${jk}`;
 
-    // 3. Kalkulasi Kehadiran (Standar 22 Hari Kerja Efektif per Bulan)
     const TOTAL_HARI_EFEKTIF = 22; 
     const totalMasuk = tepat + telat;
     const tidakMasuk = Math.max(0, TOTAL_HARI_EFEKTIF - (totalMasuk + izin));
     const persentase = Math.round((totalMasuk / TOTAL_HARI_EFEKTIF) * 100);
 
-    // 4. Render Kartu UI & Progress Bar
     if (document.getElementById('valTepat')) document.getElementById('valTepat').innerText = `${tepat} Hari`;
     if (document.getElementById('valTelat')) document.getElementById('valTelat').innerText = `${telat} Hari`;
     if (document.getElementById('valIzin')) document.getElementById('valIzin').innerText = `${izin} Hari`;
@@ -28,10 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('textPersentase')) document.getElementById('textPersentase').innerText = `${persentase}%`;
     if (document.getElementById('barFill')) document.getElementById('barFill').style.width = `${Math.min(100, persentase)}%`;
 
-    // 5. Render Grafik Donut (Chart.js)
     const canvasChart = document.getElementById('grafikKehadiran');
     if (canvasChart && typeof Chart !== 'undefined') {
-        // [PERBAIKAN] Destroy chart lama jika ada sebelum buat baru
         const chartExist = Chart.getChart(canvasChart);
         if (chartExist) chartExist.destroy();
 
@@ -58,14 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 6. Load Foto Profil Tersimpan dari LocalStorage
     const savedPhoto = localStorage.getItem(`foto_${nama}_${kelas}`);
     if (savedPhoto && document.getElementById('imgFotoSiswa')) {
         document.getElementById('imgFotoSiswa').src = savedPhoto;
     }
 });
 
-// === FUNGSI PREVIEW & SIMPAN FOTO PROFIL ===
 function pratinjauFoto(event) {
     const file = event.target.files[0];
     if (file) {

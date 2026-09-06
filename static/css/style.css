@@ -1,4 +1,3 @@
-/* === VARIABEL TEMA (DARK & LIGHT) === */
 [data-theme="dark"] {
     --bg-main: #060713;
     --card-bg: #141634;
@@ -61,7 +60,6 @@ body {
     overflow-x: hidden;
 }
 
-/* === HEADER === */
 .header {
     display: flex;
     align-items: center;
@@ -109,7 +107,6 @@ body {
     color: var(--text-title);
 }
 
-/* === SIDEBAR TOGGLE & NAVIGASI === */
 .sidebar {
     position: fixed;
     top: 0;
@@ -249,7 +246,6 @@ input:checked + .slider:before {
     display: block;
 }
 
-/* === HALAMAN VIEW (TAB SECTION) === */
 .page-view {
     display: none;
 }
@@ -258,7 +254,6 @@ input:checked + .slider:before {
     display: block;
 }
 
-/* === LAYOUT UTAMA SCANNER === */
 .container {
     display: flex;
     flex-direction: row;
@@ -361,7 +356,6 @@ input:checked + .slider:before {
     border: 1px solid var(--border-color);
 }
 
-/* === STATISTIK CARDS === */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -392,7 +386,6 @@ input:checked + .slider:before {
     color: var(--text-heading);
 }
 
-/* === SEARCH & FILTER BAR === */
 .action-filter-bar {
     display: flex;
     gap: 0.8rem;
@@ -419,7 +412,6 @@ input:checked + .slider:before {
     font-size: 0.9rem;
 }
 
-/* Dropdown select styling agar teks terbaca jelas */
 select {
     cursor: pointer;
     outline: none;
@@ -458,7 +450,6 @@ select {
     background: #2563eb;
 }
 
-/* === DESAIN HALAMAN REKAP SISWA & GURU === */
 .rekap-container {
     max-width: 100%;
     margin: 0 auto;
@@ -498,7 +489,6 @@ select {
     margin-left: auto;
 }
 
-/* === TABEL REKAP MATRIKS 30/31 HARI === */
 .table-wrapper {
     width: 100%;
     overflow-x: auto;
@@ -576,7 +566,6 @@ select {
 .badge-warning { background: var(--badge-warning); }
 .badge-danger { background: var(--badge-danger); }
 
-/* MODAL POPUP */
 .modal {
     display: none;
     position: fixed;
@@ -622,7 +611,6 @@ select {
     gap: 0.8rem;
 }
 
-/* === PRINT STYLES === */
 @media print {
     @page {
         size: landscape;
@@ -660,7 +648,6 @@ select {
     }
 }
 
-/* === RESPONSIVE DESIGN === */
 @media (max-width: 768px) {
     .container {
         flex-direction: column;

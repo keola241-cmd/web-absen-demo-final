@@ -1,9 +1,5 @@
-// ==============================================================================
-// 📌 SUPABASE CONFIGURATION
-// ==============================================================================
 const SUPABASE_URL = "https://kqptqnoklfuogpecmeuk.supabase.co";       
 const SUPABASE_KEY = "sb_publishable__FMX9980QMs4YayETQ2ruQ_nftCfpJP"; 
-// ==============================================================================
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -11,7 +7,6 @@ let tabAktifSekarang = "";
 let isProcessing = false;
 let cooldownList = {}; 
 
-// === LOGIKA NAVIGASI HALAMAN (MULTI-PAGE) ===
 function switchPage(pageId, element) {
     document.querySelectorAll('.page-view').forEach(page => page.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -26,7 +21,6 @@ function switchPage(pageId, element) {
     toggleSidebar();
 }
 
-// === AMBIL DAFTAR TAB/KELAS DARI SUPABASE ===
 async function muatDaftarTab() {
     try {
         const { data: tabs, error } = await _supabase
@@ -37,7 +31,7 @@ async function muatDaftarTab() {
         if (error) throw error;
 
         const containerMenu = document.getElementById('kelasMenuBar');
-        if (!containerMenu) return; // Guard clause jika elemen tidak ada
+        if (!containerMenu) return;
         
         containerMenu.innerHTML = '';
 
@@ -81,7 +75,6 @@ async function muatDaftarTab() {
     }
 }
 
-// === LOGIKA PILIH TAB KELAS DI REKAP ===
 function pilihKelas(namaKelas, element) {
     document.querySelectorAll('#kelasMenuBar .tab-btn').forEach(btn => {
         if (!btn.classList.contains('btn-add-tab')) btn.classList.remove('active');
@@ -92,7 +85,6 @@ function pilihKelas(namaKelas, element) {
     muatRekapTab(namaKelas);
 }
 
-// === MEMUAT DATA REKAP MATRIKS TANGGAL 1 - 31 ===
 async function muatRekapTab(namaTab) {
     if (!namaTab) return;
     
@@ -105,7 +97,6 @@ async function muatRekapTab(namaTab) {
     if (tbodySiswa) tbodySiswa.innerHTML = '<tr><td colspan="37" style="text-align:center;">Memuat data...</td></tr>';
     if (tbodyGuru) tbodyGuru.innerHTML = '<tr><td colspan="37" style="text-align:center;">Memuat data...</td></tr>';
 
-    // Perbaikan deteksi Halaman Guru
     const isGuruPage = String(namaTab).toLowerCase().includes('guru') || 
                       (document.getElementById('page-guru') && document.getElementById('page-guru').classList.contains('active'));
     
@@ -135,7 +126,6 @@ async function muatRekapTab(namaTab) {
             return;
         }
 
-        // Agregasi Data & Filter Sesuai Bulan/Tahun
         const rekapMap = {};
         data.forEach(row => {
             if (!rekapMap[row.nama]) {
@@ -149,7 +139,7 @@ async function muatRekapTab(namaTab) {
             }
 
             if (row.tanggal) {
-                const parts = row.tanggal.split('-'); // ["2026", "03", "05"]
+                const parts = row.tanggal.split('-');
                 const thn = parseInt(parts[0], 10);
                 const bln = parseInt(parts[1], 10);
                 const tgl = parseInt(parts[2], 10);
@@ -216,7 +206,6 @@ async function muatRekapTab(namaTab) {
     }
 }
 
-// === TAMBAH KELAS BARU ===
 function bukaModalTambahKelas() { document.getElementById('modalTambahKelas').classList.add('active'); }
 function tutupModalTambahKelas() { 
     document.getElementById('modalTambahKelas').classList.remove('active'); 
@@ -240,7 +229,6 @@ async function prosesTambahKelas() {
     }
 }
 
-// === LOGIKA SCAN QR CODE ===
 async function onScanSuccess(decodedText) {
     if (isProcessing) return;
     isProcessing = true;
@@ -326,7 +314,6 @@ function resetScanner() {
     }, 3000);
 }
 
-// === AMBIL RIWAYAT ABSEN HARI INI ===
 async function muatDaftarHadir() {
     const tglTeks = new Date().toISOString().split('T')[0];
     try {
@@ -359,7 +346,6 @@ function tambahItemKeDaftar(siswa) {
     listAbsen.prepend(item);
 }
 
-// === FILTER & EXPORT ===
 function filterTabelSiswa() {
     const input = document.getElementById('searchSiswa').value.toLowerCase();
     document.querySelectorAll('#tabel_rekap_siswa tr').forEach(row => {
@@ -376,7 +362,6 @@ function filterTabelGuru() {
     });
 }
 
-// [PERBAIKAN] Export CSV menggunakan Blob & UTF-8 BOM
 function exportKeCSV(tableId, filename) {
     const table = document.getElementById(tableId);
     if (!table) return;
@@ -389,7 +374,6 @@ function exportKeCSV(tableId, filename) {
         csv.push(rowData.join(','));
     });
     
-    // Tambahkan \uFEFF (BOM) agar Excel mengenali encode UTF-8 dengan benar
     const csvContent = "\uFEFF" + csv.join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -451,15 +435,12 @@ function bicara(text) {
     }
 }
 
-// === INISIALISASI TERMASUK OPTION TAHUN DAN BULAN SAAT INI ===
 let scanner = null;
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Restore Tema
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     if (document.getElementById('themeToggle')) document.getElementById('themeToggle').checked = (savedTheme === 'light');
 
-    // 2. Restore Suara & Volume [PERBAIKAN]
     const savedVoice = localStorage.getItem('useVoice');
     if (savedVoice !== null && document.getElementById('voiceToggle')) {
         document.getElementById('voiceToggle').checked = (savedVoice === 'true');
@@ -471,7 +452,6 @@ document.addEventListener('DOMContentLoaded', () => {
         switchVolume(savedVolume);
     }
 
-    // 3. Inisialisasi Option Tahun & Bulan Sekarang
     const dSekarang = new Date();
     const thnSekarang = dSekarang.getFullYear();
     const blnSekarang = dSekarang.getMonth() + 1;
