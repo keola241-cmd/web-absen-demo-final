@@ -376,13 +376,12 @@ async function onScanSuccess(decodedText) {
     const waktuTeks = `${jam}:${menit}`;
     const tglTeks = d.toISOString().split('T')[0];
 
+    // Penentuan status kehadiran berdasarkan jam batas 07:00
     let statusKehadiran = "tepat";
-    const roleClean = role.toLowerCase();
-    const daftarPegawai = ["guru", "karyawan", "anak magang", "magang", "pekerja kantoran"];
+    const jamBatas = "07:00"; 
 
-    if (daftarPegawai.includes(roleClean)) {
-        statusKehadiran = "pegawai";
-    } else if (waktuTeks > "07:00") {
+    // Jika waktu scan lewat dari 07:00 (mulai 07:01), otomatis telat
+    if (waktuTeks > jamBatas) {
         statusKehadiran = "telat";
     }
 
