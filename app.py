@@ -38,49 +38,43 @@ def detail_siswa():
 def detail_guru():
     return render_template('detail_guru.html')
 
-# --- API ENDPOINTS UNTUK AMBIL & SIMPAN DATA SUPABASE ---
-@app.route('/api/kelas')
-def get_kelas():
+# --- API ENDPOINTS UNTUK AMBIL/HAPUS DATA SUPABASE ---
+@app.route('/api/kelas', methods=['GET', 'POST'])
+def handle_kelas():
     if not supabase:
         return jsonify([])
-    
-    # 1. Coba ambil dari tabel 'kelas'
-    response = supabase.table('kelas').select('*').execute()
-    data = response.data
 
-    # 2. OTOMATISASI FALLBACK: Jika tabel 'kelas' masih kosong, 
-    # langsung tarik nama kelas unik dari riwayat tabel 'absensi'
-    if not data:
-        absensi_resp = supabase.table('absensi').select('kelas').execute()
-        if absensi_resp.data:
-            unique_kelas = set(item['kelas'] for item in absensi_resp.data if item.get('kelas'))
-            data = [{"nama_kelas": k} for k in sorted(unique_kelas)]
+    if request.method == 'GET':
+        response = supabase.table('kelas').select('*').order('id', desc=False).execute()
+        return jsonify(response.data)
 
-    return jsonify(data)
+    if request.method == 'POST':
+        payload = request.json or {}
+        response = supabase.table('kelas').insert(payload).execute()
+        return jsonify(response.data), 201
+
+@app.route('/api/kelas/<path:nama_kelas>', methods=['DELETE'])
+def delete_kelas(nama_kelas):
+    if not supabase:
+        return jsonify({'error': 'Database tidak terhubung'}), 500
+
+    try:
+        response = supabase.table('kelas').delete().eq('nama_kelas', nama_kelas).execute()
+        return jsonify({'message': f'Kelas {nama_kelas} berhasil dihapus', 'data': response.data}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/api/absensi', methods=['GET', 'POST'])
 def handle_absensi():
     if not supabase:
         return jsonify([])
 
-    # Ambil semua data absensi (GET)
     if request.method == 'GET':
         response = supabase.table('absensi').select('*').execute()
         return jsonify(response.data)
 
-    # Simpan absensi baru (POST) & OTOMATIS daftarkan kelas baru jika belum ada
     if request.method == 'POST':
         payload = request.json or {}
-        nama_kelas = payload.get('kelas')
-
-        if nama_kelas:
-            # Cek apakah kelas sudah terdaftar di tabel kelas
-            cek_kelas = supabase.table('kelas').select('*').eq('nama_kelas', nama_kelas).execute()
-            if not cek_kelas.data:
-                # Otomatis daftarkan kelas baru
-                supabase.table('kelas').insert({'nama_kelas': nama_kelas}).execute()
-
-        # Simpan data absensi
         response = supabase.table('absensi').insert(payload).execute()
         return jsonify(response.data), 201
 
