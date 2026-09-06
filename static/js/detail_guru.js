@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const telat = parseInt(urlParams.get('telat')) || 0;
 
     if (document.getElementById('detailNamaGuru')) document.getElementById('detailNamaGuru').innerText = nama;
-    if (document.getElementById('detailRoleGuru')) document.getElementById('detailRoleGuru').innerText = `Jabatan / Unit: ${kelas}`;
+    if (document.getElementById('detailRoleGuru')) document.getElementById('detailRoleGuru').innerText = `Status: ${kelas}`;
     if (document.getElementById('detailGenderGuru')) document.getElementById('detailGenderGuru').innerText = `👤 Jenis Kelamin: ${jk}`;
 
     const TOTAL_HARI_KERJA = 22; 
