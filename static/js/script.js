@@ -1,225 +1,538 @@
-<!DOCTYPE html>
-<html lang="id" data-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo Absensi</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
+const SUPABASE_URL = "https://kqptqnoklfuogpecmeuk.supabase.co";       
+const SUPABASE_KEY = "sb_publishable__FMX9980QMs4YayETQ2ruQ_nftCfpJP"; 
 
-    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    <!-- SIDEBAR NAVIGASI & PENGATURAN -->
-    <div class="sidebar" id="sidebar">
-        <h3>Navigasi Utama</h3>
-        <ul class="nav-list">
-            <li class="nav-item active" onclick="switchPage('page-scanner', this)">📱 Scanner Utama</li>
-            <li class="nav-item" onclick="switchPage('page-siswa', this)">📊 Halaman Rekap Siswa</li>
-            <li class="nav-item" onclick="switchPage('page-guru', this)">👨‍🏫 Halaman Guru</li>
-        </ul>
+let tabAktifSekarang = "";
+let isProcessing = false;
+let cooldownList = {}; 
 
-        <h3>Pengaturan Tampilan</h3>
-        <div class="theme-switch-wrapper">
-            <span>Mode Terang</span>
-            <label class="switch">
-                <input type="checkbox" id="themeToggle" onchange="switchTheme(this)">
-                <span class="slider"></span>
-            </label>
-        </div>
-        <div class="theme-switch-wrapper">
-            <span>Gunakan Suara (TTS)</span>
-            <label class="switch">
-                <input type="checkbox" id="voiceToggle" onchange="switchVoice(this)">
-                <span class="slider"></span>
-            </label>
-        </div>
+function switchPage(pageId, element) {
+    document.querySelectorAll('.page-view').forEach(page => page.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) targetPage.classList.add('active');
+    if (element) element.classList.add('active');
+
+    if (pageId === 'page-siswa' || pageId === 'page-guru') {
+        muatDaftarTab();
+    }
+    toggleSidebar();
+}
+
+async function muatDaftarTab() {
+    try {
+        const { data: tabs, error } = await _supabase
+            .from('kelas')
+            .select('nama_kelas')
+            .order('id', { ascending: true });
+
+        if (error) throw error;
+
+        const containerMenu = document.getElementById('kelasMenuBar');
+        if (!containerMenu) return;
         
-        <div class="volume-control-wrapper">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Volume Suara</span>
-                <span id="volumeLabel" style="font-size: 0.85rem; color: var(--text-title); font-weight: 700;">100%</span>
-            </div>
-            <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="1" oninput="switchVolume(this.value)">
-        </div>
-    </div>
+        containerMenu.innerHTML = '';
 
-    <!-- HEADER -->
-    <div class="header">
-        <button class="menu-btn" onclick="toggleSidebar()">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
-        <div class="header-title">
-            <h2>Absensi</h2>
-            <h1>Demo</h1>
-        </div>
-    </div>
+        if (tabs && tabs.length > 0) {
+            let tabSiswaDimuat = false;
 
-    <!-- HALAMAN SCANNER -->
-    <div id="page-scanner" class="page-view active">
-        <div class="container">
-            <div class="panel-scanner">
-                <h3>Scanner QR CODE</h3>
-                <div id="reader"></div>
-                <div id="pesan_hasil">Menunggu scan...</div>
-            </div>
-
-            <div class="panel-daftar">
-                <div class="daftar-header-box">
-                    <h3>Daftar Hadir Hari Ini</h3>
-                </div>
-                <ul id="daftar_absen"></ul>
-            </div>
-        </div>
-    </div>
-
-    <!-- HALAMAN REKAP SISWA -->
-    <div id="page-siswa" class="page-view">
-        <div class="rekap-container">
-            <h3 class="section-title">Halaman Rekap Siswa</h3>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="stat-title">Total Siswa</span>
-                    <span class="stat-value" id="stat-total-siswa">0</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-title">Tab Aktif</span>
-                    <span class="stat-value" id="stat-tab-aktif" style="color: #a78bfa;">-</span>
-                </div>
-            </div>
-
-            <div class="sub-menu-bar" id="kelasMenuBar"></div>
-
-            <div class="action-filter-bar">
-                <div class="search-box">
-                    <input type="text" id="searchSiswa" placeholder="🔍 Cari Nama Siswa..." onkeyup="filterTabelSiswa()">
-                </div>
+            tabs.forEach((item, index) => {
+                const namaTab = item.nama_kelas;
                 
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <select id="filterBulanSiswa" onchange="muatRekapTab(tabAktifSekarang)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-heading);">
-                        <option value="1">Januari</option>
-                        <option value="2">Februari</option>
-                        <option value="3">Maret</option>
-                        <option value="4">April</option>
-                        <option value="5">Mei</option>
-                        <option value="6">Juni</option>
-                        <option value="7">Juli</option>
-                        <option value="8">Agustus</option>
-                        <option value="9">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
-                    </select>
-                    <select id="filterTahunSiswa" onchange="muatRekapTab(tabAktifSekarang)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-heading);"></select>
-                </div>
+                // Container Tombol Tab
+                const btnTab = document.createElement('div');
+                btnTab.className = 'tab-btn';
 
-                <button class="btn-export" onclick="exportKeCSV('tabel_siswa_full', 'Rekap_Absensi_Siswa')">📥 Ekspor CSV</button>
-                <button class="btn-print" onclick="window.print()">🖨️ Cetak</button>
-            </div>
+                if (index === 0 && !tabAktifSekarang) {
+                    btnTab.classList.add('active');
+                    tabAktifSekarang = namaTab;
+                    tabSiswaDimuat = true;
+                } else if (namaTab === tabAktifSekarang) {
+                    btnTab.classList.add('active');
+                    tabSiswaDimuat = true;
+                }
 
-            <div class="table-wrapper">
-                <table class="custom-table" id="tabel_siswa_full">
-                    <thead>
-                        <tr>
-                            <th rowspan="2">No</th>
-                            <th rowspan="2">Nama Siswa</th>
-                            <th rowspan="2">JK</th>
-                            <th colspan="31" style="text-align: center;">Tanggal (1 - 31)</th>
-                            <th rowspan="2">Tepat</th>
-                            <th rowspan="2">Telat</th>
-                            <th rowspan="2">Total Hadir</th>
-                        </tr>
-                        <tr>
-                            <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th>
-                            <th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th>
-                            <th>21</th><th>22</th><th>23</th><th>24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th>30</th><th>31</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabel_rekap_siswa"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+                // Teks Nama Kelas
+                const spanNama = document.createElement('span');
+                spanNama.className = 'tab-label';
+                spanNama.innerText = namaTab;
+                spanNama.onclick = function() { pilihKelas(namaTab, btnTab); };
 
-    <!-- HALAMAN GURU -->
-    <div id="page-guru" class="page-view">
-        <div class="rekap-container">
-            <h3 class="section-title">Halaman Rekap Kehadiran Guru</h3>
+                // Tombol Silang Hapus
+                const btnHapus = document.createElement('span');
+                btnHapus.className = 'btn-delete-tab';
+                btnHapus.innerHTML = '&times;'; 
+                btnHapus.title = 'Hapus Kelas';
+                btnHapus.onclick = function(e) {
+                    e.stopPropagation();
+                    hapusKelas(namaTab);
+                };
 
-            <div class="action-filter-bar">
-                <div class="search-box">
-                    <input type="text" id="searchGuru" placeholder="🔍 Cari Nama Guru..." onkeyup="filterTabelGuru()">
-                </div>
+                btnTab.appendChild(spanNama);
+                btnTab.appendChild(btnHapus);
+                containerMenu.appendChild(btnTab);
+            });
 
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <select id="filterBulanGuru" onchange="muatRekapTab(tabAktifSekarang)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-heading);">
-                        <option value="1">Januari</option>
-                        <option value="2">Februari</option>
-                        <option value="3">Maret</option>
-                        <option value="4">April</option>
-                        <option value="5">Mei</option>
-                        <option value="6">Juni</option>
-                        <option value="7">Juli</option>
-                        <option value="8">Agustus</option>
-                        <option value="9">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
-                    </select>
-                    <select id="filterTahunGuru" onchange="muatRekapTab(tabAktifSekarang)" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-heading);"></select>
-                </div>
+            // Tombol Tambah Kelas
+            const btnAdd = document.createElement('button');
+            btnAdd.className = 'tab-btn btn-add-tab';
+            btnAdd.innerText = '+ Tambah Kelas';
+            btnAdd.onclick = bukaModalTambahKelas;
+            containerMenu.appendChild(btnAdd);
 
-                <button class="btn-export" onclick="exportKeCSV('tabel_guru_full', 'Rekap_Absensi_Guru')">📥 Ekspor CSV</button>
-                <button class="btn-print" onclick="window.print()">🖨️ Cetak</button>
-            </div>
+            if (tabSiswaDimuat) {
+                muatRekapTab(tabAktifSekarang);
+            } else {
+                tabAktifSekarang = tabs[0].nama_kelas;
+                muatRekapTab(tabAktifSekarang);
+            }
+        } else {
+            const btnAdd = document.createElement('button');
+            btnAdd.className = 'tab-btn btn-add-tab';
+            btnAdd.innerText = '+ Tambah Kelas';
+            btnAdd.onclick = bukaModalTambahKelas;
+            containerMenu.appendChild(btnAdd);
+            
+            tabAktifSekarang = "";
+            const tbodySiswa = document.getElementById('tabel_rekap_siswa');
+            const tbodyGuru = document.getElementById('tabel_rekap_guru');
+            if (tbodySiswa) tbodySiswa.innerHTML = '<tr><td colspan="37" style="text-align:center;">Belum ada kelas. Silakan tambah kelas baru.</td></tr>';
+            if (tbodyGuru) tbodyGuru.innerHTML = '<tr><td colspan="37" style="text-align:center;">Belum ada kelas. Silakan tambah kelas baru.</td></tr>';
+        }
+    } catch (err) {
+        console.error("Gagal muat tab:", err.message);
+    }
+}
 
-            <div class="table-wrapper">
-                <table class="custom-table" id="tabel_guru_full">
-                    <thead>
-                        <tr>
-                            <th rowspan="2">No</th>
-                            <th rowspan="2">Nama Guru</th>
-                            <th rowspan="2">JK</th>
-                            <th colspan="31" style="text-align: center;">Tanggal (1 - 31)</th>
-                            <th rowspan="2">Tepat</th>
-                            <th rowspan="2">Telat</th>
-                            <th rowspan="2">Total Hadir</th>
-                        </tr>
-                        <tr>
-                            <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th>
-                            <th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th>
-                            <th>21</th><th>22</th><th>23</th><th>24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th>30</th><th>31</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabel_rekap_guru"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+function pilihKelas(namaKelas, element) {
+    document.querySelectorAll('#kelasMenuBar .tab-btn').forEach(btn => {
+        if (!btn.classList.contains('btn-add-tab')) btn.classList.remove('active');
+    });
+    if (element) element.classList.add('active');
+    
+    tabAktifSekarang = namaKelas;
+    muatRekapTab(namaKelas);
+}
 
-    <!-- MODAL TAMBAH KELAS -->
-    <div class="modal" id="modalTambahKelas">
-        <div class="modal-content">
-            <h4>Tambah Kelas Baru</h4>
-            <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 1rem;">
-                Masukkan nama kelas baru (misal: 10-A, 11-IPA, Guru).
-            </p>
+async function hapusKelas(namaKelas) {
+    const yakin = confirm(`Yakin mau hapus tab '${namaKelas}' ini?`);
+    if (!yakin) return;
 
-            <input type="text" id="namaKelasBaru" placeholder="Masukkan nama kelas">
+    try {
+        const { error } = await _supabase
+            .from('kelas')
+            .delete()
+            .eq('nama_kelas', namaKelas);
 
-            <div class="modal-actions">
-                <button class="tab-btn" onclick="tutupModalTambahKelas()">Batal</button>
-                <button class="tab-btn btn-add-tab" onclick="prosesTambahKelas()">Simpan Kelas</button>
-            </div>
-        </div>
-    </div>
+        if (error) throw error;
 
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
-</html>
+        alert(`Tab '${namaKelas}' berhasil dihapus!`);
+
+        if (tabAktifSekarang === namaKelas) {
+            tabAktifSekarang = "";
+        }
+
+        muatDaftarTab();
+    } catch (err) {
+        alert("Gagal menghapus kelas: " + err.message);
+    }
+}
+
+async function muatRekapTab(namaTab) {
+    if (!namaTab) return;
+    
+    const elemTabAktif = document.getElementById('stat-tab-aktif');
+    if (elemTabAktif) elemTabAktif.innerText = namaTab;
+
+    const tbodySiswa = document.getElementById('tabel_rekap_siswa');
+    const tbodyGuru = document.getElementById('tabel_rekap_guru');
+    
+    if (tbodySiswa) tbodySiswa.innerHTML = '<tr><td colspan="37" style="text-align:center;">Memuat data...</td></tr>';
+    if (tbodyGuru) tbodyGuru.innerHTML = '<tr><td colspan="37" style="text-align:center;">Memuat data...</td></tr>';
+
+    const isGuruPage = String(namaTab).toLowerCase().includes('guru') || 
+                      (document.getElementById('page-guru') && document.getElementById('page-guru').classList.contains('active'));
+    
+    const filterBulanElem = document.getElementById(isGuruPage ? 'filterBulanGuru' : 'filterBulanSiswa');
+    const filterTahunElem = document.getElementById(isGuruPage ? 'filterTahunGuru' : 'filterTahunSiswa');
+
+    const bulanSel = filterBulanElem ? parseInt(filterBulanElem.value, 10) : (new Date().getMonth() + 1);
+    const tahunSel = filterTahunElem ? parseInt(filterTahunElem.value, 10) : new Date().getFullYear();
+
+    try {
+        const { data, error } = await _supabase
+            .from('absensi')
+            .select('*')
+            .eq('kelas', namaTab);
+
+        if (error) throw error;
+
+        if (tbodySiswa) tbodySiswa.innerHTML = '';
+        if (tbodyGuru) tbodyGuru.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            const pesanKosong = '<tr><td colspan="37" style="text-align:center;">Belum ada data di kelas ini.</td></tr>';
+            if (tbodySiswa) tbodySiswa.innerHTML = pesanKosong;
+            if (tbodyGuru) tbodyGuru.innerHTML = pesanKosong;
+            const elemTotal = document.getElementById('stat-total-siswa');
+            if (elemTotal) elemTotal.innerText = 0;
+            return;
+        }
+
+        const rekapMap = {};
+        data.forEach(row => {
+            if (!rekapMap[row.nama]) {
+                rekapMap[row.nama] = { 
+                    nama: row.nama, 
+                    gender: row.gender || '-', 
+                    tepat: 0, 
+                    telat: 0,
+                    harian: {} 
+                };
+            }
+
+            if (row.tanggal) {
+                const parts = row.tanggal.split('-');
+                const thn = parseInt(parts[0], 10);
+                const bln = parseInt(parts[1], 10);
+                const tgl = parseInt(parts[2], 10);
+
+                if (bln === bulanSel && thn === tahunSel) {
+                    if (row.status_kehadiran === 'tepat' || row.status_kehadiran === 'pegawai') {
+                        rekapMap[row.nama].harian[tgl] = 'H';
+                        rekapMap[row.nama].tepat++;
+                    } else if (row.status_kehadiran === 'telat') {
+                        rekapMap[row.nama].harian[tgl] = 'T';
+                        rekapMap[row.nama].telat++;
+                    }
+                }
+            }
+        });
+
+        const rekapArray = Object.values(rekapMap);
+        const elemTotal = document.getElementById('stat-total-siswa');
+        if (elemTotal) elemTotal.innerText = rekapArray.length;
+
+        rekapArray.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            const totalHadir = item.tepat + item.telat;
+
+            let kolomTanggalHTML = '';
+            for (let i = 1; i <= 31; i++) {
+                const st = item.harian[i];
+                if (st === 'H') {
+                    kolomTanggalHTML += `<td style="background-color: #064e3b; color: #34d399; font-weight: bold; text-align: center;">H</td>`;
+                } else if (st === 'T') {
+                    kolomTanggalHTML += `<td style="background-color: #78350f; color: #fbbf24; font-weight: bold; text-align: center;">T</td>`;
+                } else {
+                    kolomTanggalHTML += `<td style="text-align: center; color: var(--text-sub);">-</td>`;
+                }
+            }
+
+            const urlDetail = isGuruPage ? '/detail_guru' : '/detail_siswa';
+
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>
+                    <a href="${urlDetail}?nama=${encodeURIComponent(item.nama)}&kelas=${encodeURIComponent(namaTab)}&jk=${encodeURIComponent(item.gender)}&tepat=${item.tepat}&telat=${item.telat}" 
+                       style="color: var(--text-title); text-decoration: underline; font-weight: 600;">
+                        ${item.nama}
+                    </a>
+                </td>
+                <td>${item.gender}</td>
+                ${kolomTanggalHTML}
+                <td><span class="badge badge-success">${item.tepat}</span></td>
+                <td><span class="badge badge-warning">${item.telat}</span></td>
+                <td><strong>${totalHadir}</strong></td>
+            `;
+
+            if (isGuruPage && tbodyGuru) {
+                tbodyGuru.appendChild(tr);
+            } else if (tbodySiswa) {
+                tbodySiswa.appendChild(tr);
+            }
+        });
+
+    } catch (err) {
+        const pesanErr = `<tr><td colspan="37" style="text-align:center; color:red;">Gagal: ${err.message}</td></tr>`;
+        if (tbodySiswa) tbodySiswa.innerHTML = pesanErr;
+    }
+}
+
+function bukaModalTambahKelas() { document.getElementById('modalTambahKelas').classList.add('active'); }
+function tutupModalTambahKelas() { 
+    document.getElementById('modalTambahKelas').classList.remove('active'); 
+    document.getElementById('namaKelasBaru').value = '';
+}
+
+async function prosesTambahKelas() {
+    const namaKelas = document.getElementById('namaKelasBaru').value.trim();
+    if (!namaKelas) return alert("Harap masukkan nama kelas!");
+
+    try {
+        const { error } = await _supabase.from('kelas').insert([{ nama_kelas: namaKelas }]);
+        if (error) throw error;
+
+        alert("Kelas Berhasil Ditambahkan!");
+        tutupModalTambahKelas();
+        tabAktifSekarang = namaKelas;
+        muatDaftarTab();
+    } catch (err) {
+        alert("Gagal menambahkan kelas: " + err.message);
+    }
+}
+
+async function onScanSuccess(decodedText) {
+    if (isProcessing) return;
+    isProcessing = true;
+    playBeep();
+
+    try { scanner.pause(true); } catch (e) {}
+
+    const useVoice = document.getElementById('voiceToggle') ? document.getElementById('voiceToggle').checked : true;
+    const dataSplit = decodedText.split('|').map(s => s.trim());
+
+    if (dataSplit.length < 4) {
+        tampilPesan("⚠️ Format QR Code Salah!", "#ef4444", useVoice);
+        return resetScanner();
+    }
+
+    const [id_user, nama, kelas, role] = dataSplit;
+    const gender = dataSplit[4] || '-';
+
+    const skrg = Math.floor(Date.now() / 1000);
+    if (cooldownList[id_user] && (skrg - cooldownList[id_user]) < 60) {
+        const sisa = 60 - (skrg - cooldownList[id_user]);
+        tampilPesan(`⚠️ ${nama} baru saja scan! Tunggu ${sisa} detik.`, "#f59e0b", useVoice);
+        return resetScanner();
+    }
+
+    const d = new Date();
+    const jam = String(d.getHours()).padStart(2, '0');
+    const menit = String(d.getMinutes()).padStart(2, '0');
+    const waktuTeks = `${jam}:${menit}`;
+    const tglTeks = d.toISOString().split('T')[0];
+
+    let statusKehadiran = "tepat";
+    const roleClean = role.toLowerCase();
+    const daftarPegawai = ["guru", "karyawan", "anak magang", "magang", "pekerja kantoran"];
+
+    if (daftarPegawai.includes(roleClean)) {
+        statusKehadiran = "pegawai";
+    } else if (waktuTeks > "07:00") {
+        statusKehadiran = "telat";
+    }
+
+    try {
+        const { error } = await _supabase.from('absensi').insert([{
+            user_id: id_user,
+            nama: nama,
+            kelas: kelas,
+            role: role,
+            gender: gender,
+            tanggal: tglTeks,
+            waktu: waktuTeks,
+            status_kehadiran: statusKehadiran
+        }]);
+
+        if (error) throw error;
+
+        cooldownList[id_user] = skrg;
+        const msg = statusKehadiran === "telat" ? `⚠️ ${nama} Terlambat (${waktuTeks})!` : `✅ Berhasil Absen, Selamat Datang ${nama}`;
+        const warna = statusKehadiran === "telat" ? "#f59e0b" : "#10b981";
+
+        tampilPesan(msg, warna, useVoice);
+        tambahItemKeDaftar({ nama, kelas, role, gender, waktu: waktuTeks });
+
+    } catch (err) {
+        tampilPesan("⚠️ Gagal Simpan Data: " + err.message, "#ef4444", useVoice);
+    }
+
+    resetScanner();
+}
+
+function tampilPesan(msg, color, useVoice) {
+    const textPesan = document.getElementById('pesan_hasil');
+    if (textPesan) {
+        textPesan.innerText = msg;
+        textPesan.style.color = color;
+    }
+    if (useVoice) bicara(msg);
+}
+
+function resetScanner() {
+    setTimeout(() => {
+        isProcessing = false;
+        try { scanner.resume(); } catch (e) {}
+    }, 3000);
+}
+
+async function muatDaftarHadir() {
+    const tglTeks = new Date().toISOString().split('T')[0];
+    try {
+        const { data, error } = await _supabase
+            .from('absensi')
+            .select('*')
+            .eq('tanggal', tglTeks)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const listAbsen = document.getElementById('daftar_absen');
+        if (listAbsen) {
+            listAbsen.innerHTML = '';
+            if (data) {
+                data.forEach(siswa => tambahItemKeDaftar(siswa));
+            }
+        }
+    } catch (err) {
+        console.error("Gagal muat riwayat:", err.message);
+    }
+}
+
+function tambahItemKeDaftar(siswa) {
+    const listAbsen = document.getElementById('daftar_absen');
+    if (!listAbsen) return;
+    const item = document.createElement('li');
+    const genderInfo = siswa.gender ? ` - ${siswa.gender}` : '';
+    item.innerText = `[${siswa.waktu || ''}] ${siswa.nama || ''} - Kelas ${siswa.kelas || ''} (${siswa.role || ''}${genderInfo})`;
+    listAbsen.prepend(item);
+}
+
+function filterTabelSiswa() {
+    const input = document.getElementById('searchSiswa').value.toLowerCase();
+    document.querySelectorAll('#tabel_rekap_siswa tr').forEach(row => {
+        const nama = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';
+        row.style.display = nama.includes(input) ? '' : 'none';
+    });
+}
+
+function filterTabelGuru() {
+    const input = document.getElementById('searchGuru').value.toLowerCase();
+    document.querySelectorAll('#tabel_rekap_guru tr').forEach(row => {
+        const nama = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';
+        row.style.display = nama.includes(input) ? '' : 'none';
+    });
+}
+
+function exportKeCSV(tableId, filename) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    let csv = [];
+    table.querySelectorAll('tr').forEach(row => {
+        let rowData = [];
+        row.querySelectorAll('th, td').forEach(cell => {
+            rowData.push(`"${cell.innerText.replace(/(\r\n|\n|\r)/gm, " ").trim()}"`);
+        });
+        csv.push(rowData.join(','));
+    });
+    
+    const csvContent = "\uFEFF" + csv.join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${filename}_${tabAktifSekarang}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('overlay');
+    if (sb) sb.classList.toggle('active');
+    if (ov) ov.classList.toggle('active');
+}
+
+function switchTheme(checkbox) {
+    const theme = checkbox.checked ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+}
+
+function switchVoice(checkbox) { localStorage.setItem('useVoice', checkbox.checked); }
+function switchVolume(val) {
+    localStorage.setItem('appVolume', val);
+    if (document.getElementById('volumeLabel')) document.getElementById('volumeLabel').innerText = Math.round(val * 100) + '%';
+}
+
+function playBeep() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const vol = parseFloat(localStorage.getItem('appVolume') ?? '1.0');
+        if (vol <= 0) return;
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(850, ctx.currentTime);
+        gain.gain.setValueAtTime(vol * 0.8, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.18);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.18);
+    } catch (e) {}
+}
+
+function bicara(text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        let suara = new SpeechSynthesisUtterance(text);
+        suara.lang = 'id-ID';
+        suara.volume = parseFloat(localStorage.getItem('appVolume') ?? '1.0');
+        window.speechSynthesis.speak(suara);
+    }
+}
+
+let scanner = null;
+document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    if (document.getElementById('themeToggle')) document.getElementById('themeToggle').checked = (savedTheme === 'light');
+
+    const savedVoice = localStorage.getItem('useVoice');
+    if (savedVoice !== null && document.getElementById('voiceToggle')) {
+        document.getElementById('voiceToggle').checked = (savedVoice === 'true');
+    }
+
+    const savedVolume = localStorage.getItem('appVolume') ?? '1.0';
+    if (document.getElementById('volumeRange')) {
+        document.getElementById('volumeRange').value = savedVolume;
+        switchVolume(savedVolume);
+    }
+
+    const dSekarang = new Date();
+    const thnSekarang = dSekarang.getFullYear();
+    const blnSekarang = dSekarang.getMonth() + 1;
+
+    ['filterTahunSiswa', 'filterTahunGuru'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel) {
+            sel.innerHTML = '';
+            for (let y = thnSekarang - 2; y <= thnSekarang + 2; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.innerText = y;
+                if (y === thnSekarang) opt.selected = true;
+                sel.appendChild(opt);
+            }
+        }
+    });
+
+    if (document.getElementById('filterBulanSiswa')) document.getElementById('filterBulanSiswa').value = blnSekarang;
+    if (document.getElementById('filterBulanGuru')) document.getElementById('filterBulanGuru').value = blnSekarang;
+
+    muatDaftarHadir();
+    muatDaftarTab();
+
+    if (document.getElementById('reader')) {
+        scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        scanner.render(onScanSuccess);
+    }
+});
