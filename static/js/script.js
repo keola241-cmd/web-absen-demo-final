@@ -60,7 +60,7 @@ async function muatDaftarTab() {
                 spanNama.innerText = namaTab;
                 spanNama.onclick = function() { pilihKelas(namaTab, btnTab); };
 
-                // Tombol Silang Hapus Kecil di Tab
+                // Tombol Silang Hapus (Bukan Emoji, Menggunakan Karakter 'x')
                 const btnHapus = document.createElement('span');
                 btnHapus.className = 'btn-delete-tab';
                 btnHapus.innerHTML = '&times;'; 
@@ -75,25 +75,12 @@ async function muatDaftarTab() {
                 containerMenu.appendChild(btnTab);
             });
 
-            // Container Tombol Aksi (Hapus Tab & Tambah Kelas)
-            const actionGroup = document.createElement('div');
-            actionGroup.className = 'tab-action-group';
-
-            if (tabAktifSekarang) {
-                const btnDelete = document.createElement('button');
-                btnDelete.className = 'tab-btn btn-delete-active-tab';
-                btnDelete.innerText = '🗑️ Hapus Tab';
-                btnDelete.onclick = function() { hapusKelas(tabAktifSekarang); };
-                actionGroup.appendChild(btnDelete);
-            }
-
+            // Tombol Tambah Kelas
             const btnAdd = document.createElement('button');
             btnAdd.className = 'tab-btn btn-add-tab';
             btnAdd.innerText = '+ Tambah Kelas';
             btnAdd.onclick = bukaModalTambahKelas;
-            actionGroup.appendChild(btnAdd);
-
-            containerMenu.appendChild(actionGroup);
+            containerMenu.appendChild(btnAdd);
 
             if (tabSiswaDimuat) {
                 muatRekapTab(tabAktifSekarang);
@@ -102,16 +89,12 @@ async function muatDaftarTab() {
                 muatRekapTab(tabAktifSekarang);
             }
         } else {
-            const actionGroup = document.createElement('div');
-            actionGroup.className = 'tab-action-group';
-
+            // Jika tidak ada tab tersisa
             const btnAdd = document.createElement('button');
             btnAdd.className = 'tab-btn btn-add-tab';
             btnAdd.innerText = '+ Tambah Kelas';
             btnAdd.onclick = bukaModalTambahKelas;
-            actionGroup.appendChild(btnAdd);
-
-            containerMenu.appendChild(actionGroup);
+            containerMenu.appendChild(btnAdd);
             
             tabAktifSekarang = "";
             const tbodySiswa = document.getElementById('tabel_rekap_siswa');
@@ -126,18 +109,16 @@ async function muatDaftarTab() {
 
 function pilihKelas(namaKelas, element) {
     document.querySelectorAll('#kelasMenuBar .tab-btn').forEach(btn => {
-        if (!btn.classList.contains('btn-add-tab') && !btn.classList.contains('btn-delete-active-tab')) {
-            btn.classList.remove('active');
-        }
+        if (!btn.classList.contains('btn-add-tab')) btn.classList.remove('active');
     });
     if (element) element.classList.add('active');
     
     tabAktifSekarang = namaKelas;
-    muatDaftarTab();
+    muatRekapTab(namaKelas);
 }
 
 async function hapusKelas(namaKelas) {
-    if (!namaKelas) return;
+    // Peringatan konfirmasi sebelum menghapus
     const yakin = confirm(`Yakin mau hapus tab '${namaKelas}' ini?`);
     if (!yakin) return;
 
