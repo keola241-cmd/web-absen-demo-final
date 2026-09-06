@@ -6,6 +6,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let tabAktifSekarang = "";
 let isProcessing = false;
 let cooldownList = {}; 
+let kelasTargetHapus = ""; // Variabel baru untuk menyimpan nama kelas yang akan dihapus
 
 function switchPage(pageId, element) {
     document.querySelectorAll('.page-view').forEach(page => page.classList.remove('active'));
@@ -67,7 +68,7 @@ async function muatDaftarTab() {
                 btnHapus.title = 'Hapus Kelas';
                 btnHapus.onclick = function(e) {
                     e.stopPropagation();
-                    hapusKelas(namaTab);
+                    hapusKelas(namaTab); // Memanggil modal baru, bukan alert confirm
                 };
 
                 btnTab.appendChild(spanNama);
@@ -117,30 +118,44 @@ function pilihKelas(namaKelas, element) {
     muatRekapTab(namaKelas);
 }
 
-async function hapusKelas(namaKelas) {
-    // Peringatan konfirmasi sebelum menghapus
-    const yakin = confirm(`Yakin mau hapus tab '${namaKelas}' ini?`);
-    if (!yakin) return;
+// FUNGSI BARU UNTUK HAPUS KELAS DENGAN MODAL KUSTOM
+function hapusKelas(namaKelas) {
+    kelasTargetHapus = namaKelas;
+    const teks = document.getElementById('namaKelasHapusTeks');
+    if (teks) teks.innerText = namaKelas;
+    document.getElementById('modalHapusKelas').classList.add('active');
+}
+
+function tutupModalHapusKelas() {
+    document.getElementById('modalHapusKelas').classList.remove('active');
+    kelasTargetHapus = "";
+}
+
+async function prosesHapusKelas() {
+    if (!kelasTargetHapus) return;
 
     try {
         const { error } = await _supabase
             .from('kelas')
             .delete()
-            .eq('nama_kelas', namaKelas);
+            .eq('nama_kelas', kelasTargetHapus);
 
         if (error) throw error;
 
-        alert(`Tab '${namaKelas}' berhasil dihapus!`);
+        // Tutup modal setelah berhasil
+        tutupModalHapusKelas();
 
-        if (tabAktifSekarang === namaKelas) {
+        if (tabAktifSekarang === kelasTargetHapus) {
             tabAktifSekarang = "";
         }
 
         muatDaftarTab();
     } catch (err) {
         alert("Gagal menghapus kelas: " + err.message);
+        tutupModalHapusKelas();
     }
 }
+// -----------------------------------------------------
 
 async function muatRekapTab(namaTab) {
     if (!namaTab) return;
