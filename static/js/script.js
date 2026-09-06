@@ -9,6 +9,45 @@ let cooldownList = {};
 let kelasTargetHapus = ""; 
 let namaTargetHapusVar = ""; // Menyimpan nama user yang akan dihapus
 
+// FUNGSI JAM DIGITAL
+function updateJamDigital() {
+    const elemJam = document.getElementById('jamDigitalHeader');
+    if (!elemJam) return;
+    
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    
+    elemJam.innerText = `${hh}:${mm}:${ss} WIB`;
+}
+setInterval(updateJamDigital, 1000);
+
+// FUNGSI LAYAR PENUH (FULLSCREEN)
+function toggleFullScreen() {
+    const doc = window.document;
+    const docEl = doc.documentElement;
+
+    const requestFullscreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+    const exitFullscreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+    if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+        if (requestFullscreen) {
+            requestFullscreen.call(docEl);
+        }
+        
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function(error) {
+                console.log("Fitur kunci orientasi butuh izin browser:", error);
+            });
+        }
+    } else {
+        if (exitFullscreen) {
+            exitFullscreen.call(doc);
+        }
+    }
+}
+
 function switchPage(pageId, element) {
     document.querySelectorAll('.page-view').forEach(page => page.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -552,6 +591,8 @@ function bicara(text) {
 
 let scanner = null;
 document.addEventListener('DOMContentLoaded', () => {
+    updateJamDigital(); // Jalankan langsung saat halaman siap
+
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     if (document.getElementById('themeToggle')) document.getElementById('themeToggle').checked = (savedTheme === 'light');
