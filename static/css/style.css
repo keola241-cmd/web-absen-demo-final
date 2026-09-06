@@ -107,6 +107,20 @@ body {
     color: var(--text-title);
 }
 
+/* --- STYLING JAM DIGITAL --- */
+.jam-digital-box {
+    margin-top: 4px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--badge-success);
+    background: var(--card-bg);
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: inline-block;
+    border: 1px solid var(--border-color);
+}
+
 .sidebar {
     position: fixed;
     top: 0;
@@ -674,6 +688,30 @@ select {
     transform: scale(1);
 }
 
+/* --- TOMBOL FULLSCREEN --- */
+.btn-fullscreen {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background-color: var(--card-bg);
+    color: var(--text-heading);
+    border: 2px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transition: 0.3s;
+}
+
+.btn-fullscreen:hover {
+    transform: scale(1.05);
+    background-color: var(--btn-primary);
+    color: #ffffff;
+}
+
 @media print {
     @page {
         size: landscape;
@@ -706,7 +744,7 @@ select {
         font-size: 0.7rem !important;
         padding: 0.3rem !important;
     }
-    .sub-menu-bar, .action-filter-bar, .menu-btn, .sidebar, .overlay, .btn-export, .btn-print {
+    .sub-menu-bar, .action-filter-bar, .menu-btn, .sidebar, .overlay, .btn-export, .btn-print, .btn-fullscreen {
         display: none !important;
     }
 }
@@ -737,6 +775,4 @@ select {
         flex-direction: column;
         align-items: stretch;
     }
-
-
 }
