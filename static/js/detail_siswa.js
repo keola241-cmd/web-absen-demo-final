@@ -28,9 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('textPersentase')) document.getElementById('textPersentase').innerText = `${persentase}%`;
     if (document.getElementById('barFill')) document.getElementById('barFill').style.width = `${Math.min(100, persentase)}%`;
 
-    // 5. Render Grafik Donut (Chart.js) dengan label "Tidak Masuk"
+    // 5. Render Grafik Donut (Chart.js)
     const canvasChart = document.getElementById('grafikKehadiran');
     if (canvasChart && typeof Chart !== 'undefined') {
+        // [PERBAIKAN] Destroy chart lama jika ada sebelum buat baru
+        const chartExist = Chart.getChart(canvasChart);
+        if (chartExist) chartExist.destroy();
+
         new Chart(canvasChart, {
             type: 'doughnut',
             data: {
@@ -68,7 +72,8 @@ function pratinjauFoto(event) {
         const reader = new FileReader();
         reader.onload = function(e) {
             const resultData = e.target.result;
-            document.getElementById('imgFotoSiswa').src = resultData;
+            const imgElem = document.getElementById('imgFotoSiswa');
+            if (imgElem) imgElem.src = resultData;
 
             const urlParams = new URLSearchParams(window.location.search);
             const nama = urlParams.get('nama');
