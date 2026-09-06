@@ -1,1 +1,11 @@
-pass
+@import url('detail_siswa.css');
+
+.card-tepat {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.card-telat {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
