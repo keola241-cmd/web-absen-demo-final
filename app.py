@@ -8,6 +8,7 @@ app = Flask(__name__)
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
+# Inisialisasi client Supabase jika Environment Variable tersedia
 supabase: Client = None
 if SUPABASE_URL and SUPABASE_KEY:
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -32,6 +33,11 @@ def home():
 @app.route('/detail_siswa')
 def detail_siswa():
     return render_template('detail_siswa.html')
+
+# [PERBAIKAN] Tambahkan route detail_guru agar tidak 404
+@app.route('/detail_guru')
+def detail_guru():
+    return render_template('detail_guru.html')
 
 # --- API ENDPOINTS UNTUK AMBIL DATA SUPABASE ---
 @app.route('/api/kelas')
