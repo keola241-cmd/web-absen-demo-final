@@ -417,7 +417,7 @@ async function onScanSuccess(decodedText) {
 
     // Penentuan status kehadiran berdasarkan jam batas 07:00
     let statusKehadiran = "tepat";
-    const jamBatas = "07:00"; 
+    const jamBatas = "10:00"; 
 
     // Jika waktu scan lewat dari 07:00 (mulai 07:01), otomatis telat
     if (waktuTeks > jamBatas) {
