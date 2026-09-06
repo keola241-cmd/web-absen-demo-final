@@ -234,6 +234,20 @@
         </div>
     </div>
 
+    <!-- MODAL KONFIRMASI HAPUS PROFILE -->
+    <div id="modalHapusNama" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <h3 style="color: #ef4444; margin-bottom: 12px;">⚠️ Peringatan Hapus Data</h3>
+            <p style="margin-bottom: 20px; color: var(--text-sub);">
+                Apakah Anda yakin ingin menghapus seluruh profil dan riwayat absensi untuk <strong id="namaTargetHapus" style="color: var(--text-title);"></strong>?
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="tutupModalHapusNama()" style="padding: 8px 16px; border-radius: 6px; border: 1px solid #ccc; background: transparent; cursor: pointer; color: var(--text-title);">Batal</button>
+                <button onclick="eksekusiHapusNama()" style="padding: 8px 16px; border-radius: 6px; border: none; background: #ef4444; color: white; cursor: pointer; font-weight: bold;">Hapus Profile</button>
+            </div>
+        </div>
+    </div>
+    
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
