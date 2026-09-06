@@ -6,7 +6,8 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let tabAktifSekarang = "";
 let isProcessing = false;
 let cooldownList = {}; 
-let kelasTargetHapus = ""; // Variabel baru untuk menyimpan nama kelas yang akan dihapus
+let kelasTargetHapus = ""; 
+let namaTargetHapusVar = ""; // Menyimpan nama user yang akan dihapus
 
 function switchPage(pageId, element) {
     document.querySelectorAll('.page-view').forEach(page => page.classList.remove('active'));
@@ -42,7 +43,6 @@ async function muatDaftarTab() {
             tabs.forEach((item, index) => {
                 const namaTab = item.nama_kelas;
                 
-                // Container Tombol Tab
                 const btnTab = document.createElement('div');
                 btnTab.className = 'tab-btn';
 
@@ -55,20 +55,18 @@ async function muatDaftarTab() {
                     tabSiswaDimuat = true;
                 }
 
-                // Teks Nama Kelas
                 const spanNama = document.createElement('span');
                 spanNama.className = 'tab-label';
                 spanNama.innerText = namaTab;
                 spanNama.onclick = function() { pilihKelas(namaTab, btnTab); };
 
-                // Tombol Silang Hapus (Bukan Emoji, Menggunakan Karakter 'x')
                 const btnHapus = document.createElement('span');
                 btnHapus.className = 'btn-delete-tab';
                 btnHapus.innerHTML = '&times;'; 
                 btnHapus.title = 'Hapus Kelas';
                 btnHapus.onclick = function(e) {
                     e.stopPropagation();
-                    hapusKelas(namaTab); // Memanggil modal baru, bukan alert confirm
+                    hapusKelas(namaTab);
                 };
 
                 btnTab.appendChild(spanNama);
@@ -76,7 +74,6 @@ async function muatDaftarTab() {
                 containerMenu.appendChild(btnTab);
             });
 
-            // Tombol Tambah Kelas
             const btnAdd = document.createElement('button');
             btnAdd.className = 'tab-btn btn-add-tab';
             btnAdd.innerText = '+ Tambah Kelas';
@@ -90,7 +87,6 @@ async function muatDaftarTab() {
                 muatRekapTab(tabAktifSekarang);
             }
         } else {
-            // Jika tidak ada tab tersisa
             const btnAdd = document.createElement('button');
             btnAdd.className = 'tab-btn btn-add-tab';
             btnAdd.innerText = '+ Tambah Kelas';
@@ -100,8 +96,8 @@ async function muatDaftarTab() {
             tabAktifSekarang = "";
             const tbodySiswa = document.getElementById('tabel_rekap_siswa');
             const tbodyGuru = document.getElementById('tabel_rekap_guru');
-            if (tbodySiswa) tbodySiswa.innerHTML = '<tr><td colspan="37" style="text-align:center;">Belum ada kelas. Silakan tambah kelas baru.</td></tr>';
-            if (tbodyGuru) tbodyGuru.innerHTML = '<tr><td colspan="37" style="text-align:center;">Belum ada kelas. Silakan tambah kelas baru.</td></tr>';
+            if (tbodySiswa) tbodySiswa.innerHTML = '<tr><td colspan="38" style="text-align:center;">Belum ada kelas. Silakan tambah kelas baru.</td></tr>';
+            if (tbodyGuru) tbodyGuru.innerHTML = '<tr><td colspan="38" style="text-align:center;">Belum ada kelas. Silakan tambah kelas baru.</td></tr>';
         }
     } catch (err) {
         console.error("Gagal muat tab:", err.message);
@@ -118,7 +114,7 @@ function pilihKelas(namaKelas, element) {
     muatRekapTab(namaKelas);
 }
 
-// FUNGSI BARU UNTUK HAPUS KELAS DENGAN MODAL KUSTOM
+// HAPUS KELAS
 function hapusKelas(namaKelas) {
     kelasTargetHapus = namaKelas;
     const teks = document.getElementById('namaKelasHapusTeks');
@@ -127,7 +123,8 @@ function hapusKelas(namaKelas) {
 }
 
 function tutupModalHapusKelas() {
-    document.getElementById('modalHapusKelas').classList.remove('active');
+    const modal = document.getElementById('modalHapusKelas');
+    if (modal) modal.classList.remove('active');
     kelasTargetHapus = "";
 }
 
@@ -142,7 +139,6 @@ async function prosesHapusKelas() {
 
         if (error) throw error;
 
-        // Tutup modal setelah berhasil
         tutupModalHapusKelas();
 
         if (tabAktifSekarang === kelasTargetHapus) {
@@ -151,26 +147,60 @@ async function prosesHapusKelas() {
 
         muatDaftarTab();
     } catch (err) {
-        alert("Gagal menghapus kelas: " + err.message);
+        console.error("Gagal menghapus kelas:", err.message);
         tutupModalHapusKelas();
     }
 }
-// -----------------------------------------------------
 
-async function muatRekapTab(namaTab) {
-    if (!namaTab) return;
+// FITUR MODAL KONFIRMASI HAPUS PROFILE
+function konfirmasiHapusNama(nama) {
+    namaTargetHapusVar = nama;
+    const elemNama = document.getElementById('namaTargetHapus');
+    if (elemNama) elemNama.innerText = nama;
     
+    const modal = document.getElementById('modalHapusNama');
+    if (modal) modal.classList.add('active');
+}
+
+function tutupModalHapusNama() {
+    const modal = document.getElementById('modalHapusNama');
+    if (modal) modal.classList.remove('active');
+    namaTargetHapusVar = "";
+}
+
+async function eksekusiHapusNama() {
+    if (!namaTargetHapusVar) return;
+
+    try {
+        const { error } = await _supabase
+            .from('absensi')
+            .delete()
+            .eq('nama', namaTargetHapusVar);
+
+        if (error) throw error;
+
+        tutupModalHapusNama();
+        muatRekapTab(tabAktifSekarang);
+    } catch (err) {
+        console.error("Gagal menghapus data:", err.message);
+        tutupModalHapusNama();
+    }
+}
+
+// MEMUAT REKAP DATA (GURU & SISWA)
+async function muatRekapTab(namaTab) {
     const elemTabAktif = document.getElementById('stat-tab-aktif');
-    if (elemTabAktif) elemTabAktif.innerText = namaTab;
+    if (elemTabAktif) elemTabAktif.innerText = namaTab || 'Semua Data';
 
     const tbodySiswa = document.getElementById('tabel_rekap_siswa');
     const tbodyGuru = document.getElementById('tabel_rekap_guru');
     
-    if (tbodySiswa) tbodySiswa.innerHTML = '<tr><td colspan="37" style="text-align:center;">Memuat data...</td></tr>';
-    if (tbodyGuru) tbodyGuru.innerHTML = '<tr><td colspan="37" style="text-align:center;">Memuat data...</td></tr>';
+    if (tbodySiswa) tbodySiswa.innerHTML = '<tr><td colspan="38" style="text-align:center;">Memuat data...</td></tr>';
+    if (tbodyGuru) tbodyGuru.innerHTML = '<tr><td colspan="38" style="text-align:center;">Memuat data...</td></tr>';
 
-    const isGuruPage = String(namaTab).toLowerCase().includes('guru') || 
-                      (document.getElementById('page-guru') && document.getElementById('page-guru').classList.contains('active'));
+    const pageGuru = document.getElementById('page-guru');
+    const isGuruPage = (pageGuru && pageGuru.classList.contains('active')) || 
+                      (namaTab && String(namaTab).toLowerCase().includes('guru'));
     
     const filterBulanElem = document.getElementById(isGuruPage ? 'filterBulanGuru' : 'filterBulanSiswa');
     const filterTahunElem = document.getElementById(isGuruPage ? 'filterTahunGuru' : 'filterTahunSiswa');
@@ -179,10 +209,15 @@ async function muatRekapTab(namaTab) {
     const tahunSel = filterTahunElem ? parseInt(filterTahunElem.value, 10) : new Date().getFullYear();
 
     try {
-        const { data, error } = await _supabase
-            .from('absensi')
-            .select('*')
-            .eq('kelas', namaTab);
+        let query = _supabase.from('absensi').select('*');
+
+        if (isGuruPage) {
+            query = query.or('role.ilike.%guru%,role.ilike.%karyawan%');
+        } else if (namaTab) {
+            query = query.eq('kelas', namaTab);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
 
@@ -190,9 +225,9 @@ async function muatRekapTab(namaTab) {
         if (tbodyGuru) tbodyGuru.innerHTML = '';
 
         if (!data || data.length === 0) {
-            const pesanKosong = '<tr><td colspan="37" style="text-align:center;">Belum ada data di kelas ini.</td></tr>';
-            if (tbodySiswa) tbodySiswa.innerHTML = pesanKosong;
-            if (tbodyGuru) tbodyGuru.innerHTML = pesanKosong;
+            const pesanKosong = '<tr><td colspan="38" style="text-align:center;">Belum ada data untuk ditampilkan.</td></tr>';
+            if (isGuruPage && tbodyGuru) tbodyGuru.innerHTML = pesanKosong;
+            if (!isGuruPage && tbodySiswa) tbodySiswa.innerHTML = pesanKosong;
             const elemTotal = document.getElementById('stat-total-siswa');
             if (elemTotal) elemTotal.innerText = 0;
             return;
@@ -204,6 +239,7 @@ async function muatRekapTab(namaTab) {
                 rekapMap[row.nama] = { 
                     nama: row.nama, 
                     gender: row.gender || '-', 
+                    kelas: row.kelas || '-',
                     tepat: 0, 
                     telat: 0,
                     harian: {} 
@@ -249,14 +285,22 @@ async function muatRekapTab(namaTab) {
             }
 
             const urlDetail = isGuruPage ? '/detail_guru' : '/detail_siswa';
+            const valKelas = item.kelas || namaTab || '-';
 
             tr.innerHTML = `
                 <td>${index + 1}</td>
                 <td>
-                    <a href="${urlDetail}?nama=${encodeURIComponent(item.nama)}&kelas=${encodeURIComponent(namaTab)}&jk=${encodeURIComponent(item.gender)}&tepat=${item.tepat}&telat=${item.telat}" 
-                       style="color: var(--text-title); text-decoration: underline; font-weight: 600;">
-                        ${item.nama}
-                    </a>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <a href="${urlDetail}?nama=${encodeURIComponent(item.nama)}&kelas=${encodeURIComponent(valKelas)}&jk=${encodeURIComponent(item.gender)}&tepat=${item.tepat}&telat=${item.telat}" 
+                           style="color: var(--text-title); text-decoration: underline; font-weight: 600;">
+                            ${item.nama}
+                        </a>
+                        <button onclick="konfirmasiHapusNama('${item.nama.replace(/'/g, "\\'")}')" 
+                                title="Hapus ${item.nama}" 
+                                style="background: none; border: none; color: #ef4444; font-size: 16px; font-weight: bold; cursor: pointer; padding: 0 4px; line-height: 1;">
+                            &times;
+                        </button>
+                    </div>
                 </td>
                 <td>${item.gender}</td>
                 ${kolomTanggalHTML}
@@ -273,8 +317,9 @@ async function muatRekapTab(namaTab) {
         });
 
     } catch (err) {
-        const pesanErr = `<tr><td colspan="37" style="text-align:center; color:red;">Gagal: ${err.message}</td></tr>`;
+        const pesanErr = `<tr><td colspan="38" style="text-align:center; color:red;">Gagal: ${err.message}</td></tr>`;
         if (tbodySiswa) tbodySiswa.innerHTML = pesanErr;
+        if (tbodyGuru) tbodyGuru.innerHTML = pesanErr;
     }
 }
 
@@ -286,18 +331,17 @@ function tutupModalTambahKelas() {
 
 async function prosesTambahKelas() {
     const namaKelas = document.getElementById('namaKelasBaru').value.trim();
-    if (!namaKelas) return alert("Harap masukkan nama kelas!");
+    if (!namaKelas) return;
 
     try {
         const { error } = await _supabase.from('kelas').insert([{ nama_kelas: namaKelas }]);
         if (error) throw error;
 
-        alert("Kelas Berhasil Ditambahkan!");
         tutupModalTambahKelas();
         tabAktifSekarang = namaKelas;
         muatDaftarTab();
     } catch (err) {
-        alert("Gagal menambahkan kelas: " + err.message);
+        console.error("Gagal menambahkan kelas:", err.message);
     }
 }
 
@@ -452,7 +496,7 @@ function exportKeCSV(tableId, filename) {
     
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `${filename}_${tabAktifSekarang}.csv`);
+    link.setAttribute("download", `${filename}_${tabAktifSekarang || 'rekap'}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
